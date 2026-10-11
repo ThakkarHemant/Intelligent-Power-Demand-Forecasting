@@ -1,0 +1,45 @@
+date,name,category
+2017-01-01,New Year,national
+2017-01-14,Makar Sankranti / Tusu Parv,festival
+2017-01-26,Republic Day,national
+2017-02-01,Vasant Panchami (Saraswati Puja),festival
+2017-02-24,Maha Shivratri,festival
+2017-03-13,Holi,festival
+2017-03-30,Sarhul,tribal
+2017-04-04,Ram Navami,festival
+2017-04-09,Mahavir Jayanti,religious_minority
+2017-04-14,Good Friday,religious_minority
+2017-05-01,Labour Day / May Day,industrial
+2017-05-10,Buddha Purnima,religious_minority
+2017-06-26,Eid-ul-Fitr,religious_minority
+2017-06-30,Hul Diwas,tribal
+2017-08-07,Raksha Bandhan,festival
+2017-08-15,Independence Day,national
+2017-08-15,Janmashtami,festival
+2017-08-25,Ganesh Chaturthi,festival
+2017-09-01,Karma Puja,tribal
+2017-09-02,Eid-ul-Adha (Bakrid),religious_minority
+2017-09-17,Vishwakarma Puja,industrial
+2017-09-26,Durga Puja (Shashthi),festival
+2017-09-27,Durga Puja (Saptami),festival
+2017-09-28,Durga Puja (Ashtami),festival
+2017-09-29,Durga Puja (Navami),festival
+2017-09-30,Vijayadashami (Dussehra),festival
+2017-10-01,Muharram (Ashura),religious_minority
+2017-10-02,Gandhi Jayanti,national
+2017-10-19,Diwali / Kali Puja,festival
+2017-10-20,Sohrai / Govardhan Puja,tribal
+2017-10-21,Bhai Dooj,festival
+2017-10-24,Chhath Puja (Nahay-Khay),festival
+2017-10-25,Chhath Puja (Kharna),festival
+2017-10-26,Chhath Puja (Sandhya Arghya),festival
+2017-10-27,Chhath Puja (Usha Arghya),festival
+2017-11-04,Guru Nanak Jayanti,religious_minority
+2017-11-15,Jharkhand Foundation Day / Birsa Munda Jayanti,tribal
+2017-12-25,Christmas,religious_minority
+2026-10-02,Gandhi Jayanti,national
+2026-10-20,Dussehra (Vijayadashami),festival
+2026-11-08,Diwali / Kali Puja,festival
+2026-11-15,Jharkhand Foundation Day,tribal
+2026-11-15,"Chhath Puja (Sandhya Arghya, approx.)",festival
+2026-12-25,Christmas,religious_minority

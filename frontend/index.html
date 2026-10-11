@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APU Forecast · Dhanbad Power Intelligence</title>
+  <meta name="description" content="24-hour electricity demand forecasting dashboard for Apex Power & Utilities, Dhanbad, Jharkhand. LightGBM model with real-time weather and localised holiday integration." />
+
+  <!-- Fonts: Barlow Condensed (display) · Inter (body) · JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js + annotation plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════════════════ -->
+<header class="navbar">
+  <div class="nav-left">
+    <a href="#" class="nav-brand">
+      <svg class="brand-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 1L2 5.5V14.5L10 19L18 14.5V5.5L10 1Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        <path d="M10 6L6 8.5V13L10 15.5L14 13V8.5L10 6Z" fill="currentColor" opacity="0.9"/>
+      </svg>
+      APU<span class="brand-thin">Forecast</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#forecast" class="nav-link active"><span class="active-dot"></span>Forecast</a>
+      <a href="#weather" class="nav-link">Weather</a>
+      <a href="#holidays" class="nav-link">Holidays</a>
+      <a href="#feeders" class="nav-link">Feeders</a>
+    </nav>
+  </div>
+  <div class="nav-right">
+    <span class="nav-meta" id="live-time">—</span>
+    <span class="nav-tag">IST · Dhanbad, JH</span>
+    <button class="btn-refresh" id="refresh-btn" onclick="loadAll()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO STRIP
+════════════════════════════════════════════════════════════ -->
+<section class="hero-strip">
+  <div class="hero-inner">
+    <div class="hero-text-block">
+      <div class="eyebrow-chip">
+        <span class="chip-dot"></span>
+        Live · LightGBM · 48 blocks
+      </div>
+      <h1 class="hero-title">24-Hour Power<br>Demand Forecast</h1>
+      <p class="hero-sub">Apex Power &amp; Utilities · Dhanbad, Jharkhand</p>
+      <div class="hero-window-label" id="forecast-window">Loading forecast window…</div>
+    </div>
+    <div class="hero-kpi-strip">
+      <div class="kpi-block" id="kpi-peak">
+        <span class="kpi-label">Peak Demand</span>
+        <span class="kpi-val" id="val-peak">—</span>
+        <span class="kpi-unit">MW</span>
+      </div>
+      <div class="kpi-divider"></div>
+      <div class="kpi-block" id="kpi-valley">
+        <span class="kpi-label">Valley</span>
+        <span class="kpi-val" id="val-valley">—</span>
+        <span class="kpi-unit">MW</span>
+      </div>
+      <div class="kpi-divider"></div>
+      <div class="kpi-block" id="kpi-avg">
+        <span class="kpi-label">Average</span>
+        <span class="kpi-val" id="val-avg">—</span>
+        <span class="kpi-unit">MW</span>
+      </div>
+      <div class="kpi-divider"></div>
+      <div class="kpi-block" id="kpi-energy">
+        <span class="kpi-label">Total Energy</span>
+        <span class="kpi-val" id="val-energy">—</span>
+        <span class="kpi-unit">MWh</span>
+      </div>
+      <div class="kpi-divider"></div>
+      <div class="kpi-block" id="kpi-temp">
+        <span class="kpi-label">Avg Temp</span>
+        <span class="kpi-val" id="val-temp">—</span>
+        <span class="kpi-unit">°C</span>
+      </div>
+    </div>
+  </div>
+  <div class="status-row">
+    <span class="status-pill" id="status-pill">
+      <span class="status-spinner" id="s-spinner"></span>
+      <span id="status-text">Loading…</span>
+    </span>
+    <span class="model-tag" id="model-tag"></span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     BENTO GRID
+════════════════════════════════════════════════════════════ -->
+<main class="bento-wrap">
+
+  <!-- ── MAIN FORECAST CHART ───────────────────────────────── -->
+  <section class="bento-card span-full" id="forecast">
+    <div class="card-header">
+      <div class="card-title-group">
+        <span class="section-label">FORECAST</span>
+        <h2 class="card-title">24-Hour Load Forecast</h2>
+        <p class="card-sub">48 half-hour blocks · ratio-target LightGBM · MAPE ≈ 1.94 % on Oct–Dec hold-out</p>
+      </div>
+      <div class="target-tabs" id="target-tabs">
+        <button class="tab active" data-target="load" onclick="setTarget('load',this)">System Total</button>
+        <button class="tab" data-target="F1" onclick="setTarget('F1',this)">Feeder F1</button>
+        <button class="tab" data-target="F2" onclick="setTarget('F2',this)">Feeder F2</button>
+        <button class="tab" data-target="F3" onclick="setTarget('F3',this)">Feeder F3</button>
+      </div>
+    </div>
+    <div class="chart-box" id="main-chart-box">
+      <canvas id="forecast-chart"></canvas>
+      <div class="chart-loader" id="chart-loader">
+        <div class="loader-ring"></div>
+        <span>Generating forecast…</span>
+      </div>
+    </div>
+    <!-- Annotation legend -->
+    <div class="chart-legend-row">
+      <div class="legend-item"><span class="legend-swatch swatch-forecast"></span>Demand (MW)</div>
+      <div class="legend-item"><span class="legend-swatch swatch-temp"></span>Temperature (°C)</div>
+      <div class="legend-item"><span class="legend-swatch swatch-holiday"></span>Holiday period</div>
+    </div>
+  </section>
+
+  <!-- ── WEATHER PANEL ─────────────────────────────────────── -->
+  <section class="bento-card span-7" id="weather">
+    <div class="card-header">
+      <div class="card-title-group">
+        <span class="section-label">WEATHER · OPEN-METEO API</span>
+        <h2 class="card-title">Forecast Weather</h2>
+        <p class="card-sub">Temperature · Humidity · Cloud Cover · Wind Speed</p>
+      </div>
+      <div class="weather-tab-row" id="weather-tabs">
+        <button class="wtab active" data-w="temp" onclick="setWeatherView('temp',this)">Temp</button>
+        <button class="wtab" data-w="hum" onclick="setWeatherView('hum',this)">Humidity</button>
+        <button class="wtab" data-w="cloud" onclick="setWeatherView('cloud',this)">Cloud</button>
+        <button class="wtab" data-w="wind" onclick="setWeatherView('wind',this)">Wind</button>
+      </div>
+    </div>
+    <div class="weather-chart-box">
+      <canvas id="weather-chart"></canvas>
+    </div>
+    <div class="weather-stats-row" id="weather-stats">
+      <div class="wstat">
+        <span class="wstat-icon">🌡️</span>
+        <span class="wstat-val" id="ws-temp">—</span>
+        <span class="wstat-label">Avg Temp °C</span>
+      </div>
+      <div class="wstat">
+        <span class="wstat-icon">💧</span>
+        <span class="wstat-val" id="ws-hum">—</span>
+        <span class="wstat-label">Humidity %</span>
+      </div>
+      <div class="wstat">
+        <span class="wstat-icon">☁️</span>
+        <span class="wstat-val" id="ws-cloud">—</span>
+        <span class="wstat-label">Cloud Cover %</span>
+      </div>
+      <div class="wstat">
+        <span class="wstat-icon">💨</span>
+        <span class="wstat-val" id="ws-wind">—</span>
+        <span class="wstat-label">Wind km/h</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOLIDAYS PANEL ────────────────────────────────────── -->
+  <section class="bento-card span-5" id="holidays">
+    <div class="card-header">
+      <div class="card-title-group">
+        <span class="section-label">HOLIDAYS · DHANBAD, JH</span>
+        <h2 class="card-title">Localised Calendar</h2>
+        <p class="card-sub">National · Festival · Tribal · Industrial · Minority</p>
+      </div>
+    </div>
+    <div class="hol-filter-row">
+      <button class="hf active" data-cat="all" onclick="filterHols('all',this)">All</button>
+      <button class="hf" data-cat="festival" onclick="filterHols('festival',this)">Festival</button>
+      <button class="hf" data-cat="national" onclick="filterHols('national',this)">National</button>
+      <button class="hf" data-cat="tribal" onclick="filterHols('tribal',this)">Tribal</button>
+      <button class="hf" data-cat="industrial" onclick="filterHols('industrial',this)">Industrial</button>
+    </div>
+    <div class="hol-table-wrap">
+      <table class="hol-table" id="hol-table">
+        <thead>
+          <tr><th>Date</th><th>Holiday</th><th>Category</th></tr>
+        </thead>
+        <tbody id="hol-tbody">
+          <tr><td colspan="3" class="hol-loading">Loading holidays…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── FEEDER MINI CHARTS ────────────────────────────────── -->
+  <section class="bento-card span-full" id="feeders">
+    <div class="card-header">
+      <div class="card-title-group">
+        <span class="section-label">FEEDERS · 132 KV</span>
+        <h2 class="card-title">Feeder Breakdown</h2>
+        <p class="card-sub">Individual feeder contribution to the system total over the forecast window</p>
+      </div>
+    </div>
+    <div class="feeder-grid">
+      <div class="feeder-cell">
+        <div class="feeder-label-row">
+          <span class="feeder-dot dot-f1"></span>Feeder F1 · 132 KV
+        </div>
+        <canvas id="fc-F1"></canvas>
+      </div>
+      <div class="feeder-cell">
+        <div class="feeder-label-row">
+          <span class="feeder-dot dot-f2"></span>Feeder F2 · 132 KV
+        </div>
+        <canvas id="fc-F2"></canvas>
+      </div>
+      <div class="feeder-cell">
+        <div class="feeder-label-row">
+          <span class="feeder-dot dot-f3"></span>Feeder F3 · 132 KV
+        </div>
+        <canvas id="fc-F3"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MODEL META ────────────────────────────────────────── -->
+  <section class="bento-card span-full model-meta-card" id="meta-card">
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-key">Model</span>
+        <span class="meta-val" id="meta-variant">LightGBM · ratio target</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-key">Features</span>
+        <span class="meta-val" id="meta-features">7 calendar inputs</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-key">Hold-out MAPE</span>
+        <span class="meta-val accent" id="meta-mape">~1.94 %</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-key">Forecast Blocks</span>
+        <span class="meta-val">48 × 30 min = 24 h</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-key">Weather Source</span>
+        <span class="meta-val">Open-Meteo API · Dhanbad</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-key">Next Holiday</span>
+        <span class="meta-val" id="meta-nextholiday">—</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <span>APU Forecast · Apex Power &amp; Utilities · Dhanbad, Jharkhand</span>
+  <span class="footer-sep">·</span>
+  <span class="footer-tech">FastAPI · LightGBM · Chart.js · Open-Meteo</span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
